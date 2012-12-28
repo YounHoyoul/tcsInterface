@@ -1,1 +1,1 @@
-C:\Dev\msysgit\home\royjung\Vwall2\deploy\wappstack-5.3.19-0\php\php "C:\Dev\msysgit\home\royjung\Vwall2\wwwroot\tcsInterface\localCMS.php"
+C:\Dev\msysgit\home\royjung\Vwall2\deploy\wappstack-5.3.19-0\php\php "C:\Dev\msysgit\home\royjung\Vwall2\wwwroot\tcsInterface\localCMS.php" run

@@ -88,191 +88,223 @@ function curl_download($url){
 	curl_close($ch);
 	fclose($fp);
 }
-
 ?>
 
 <?php
 
-echo "CHECK DATABASE...\n";
-
-while(1){
-	$link = @pg_connect(DB_CONN_STRING);
-	if(!$link){
-		echo "There is something wrong while connecting the database.";
-		//die();
-		sleep(30);
-		continue;
-	}
-	break;
+/*
+status
+dbcheck
+run
+*/
+$action = "status"; 
+if ( isset($_GET['action']) and strlen($_GET['action']) ) { 
+	$action = addslashes($_GET['action']); 
+} else if ( isset($argv) and isset($argv[1]) and strlen($argv[1]) ) { 
+	$action = $argv[1]; 
 }
 
-try{
-	$result = @pg_exec($link, "select count(*) from ".TB_WALLSYNC);
-	if(!$result){
-		
-		echo "There is no the table; ".TB_WALLSYNC."\n";
-		
-		$result2 = pg_exec($link,"SELECT COUNT(relname) as a FROM pg_class WHERE relname = '".TB_WALLSYNC."'");
-		$row = pg_fetch_assoc($result2);
-		
-		if($row["a"]==0){
-		
-			echo "Making the table...".TB_WALLSYNC."...\n";
-		
-			$sql = "CREATE TABLE WallSync (
-						id        integer,
-						cdate       timestamp,
-						eventid         integer
-					);";
-			pg_exec($link,$sql);
+
+if($action == "run" || $action == "dbcheck" || $action == "status"){
+	echo "CHECK DATABASE...\n";
+
+	while(1){
+		$link = @pg_connect(DB_CONN_STRING);
+		if(!$link){
+			echo "There is something wrong while connecting the database.";
+			//die();
+			sleep(30);
+			continue;
 		}
+		break;
 	}
-}catch(Exception $e){
-	echo $e;
+
+	try{
+		$result = @pg_exec($link, "select count(*) from ".TB_WALLSYNC);
+		if(!$result){
+			
+			echo "There is no the table; ".TB_WALLSYNC."\n";
+			
+			$result2 = pg_exec($link,"SELECT COUNT(relname) as a FROM pg_class WHERE relname = '".TB_WALLSYNC."'");
+			$row = pg_fetch_assoc($result2);
+			
+			if($row["a"]==0){
+			
+				echo "Making the table...".TB_WALLSYNC."...\n";
+			
+				$sql = "CREATE TABLE WallSync (
+							id        integer,
+							cdate       timestamp,
+							eventid         integer
+						);";
+				pg_exec($link,$sql);
+			}
+		}
+	}catch(Exception $e){
+		echo $e;
+	}
 }
-?>
 
-<?php
-while(true){
-
-	echo "START...\n";
-
-	$currentEventId = 0;
-	$sql = "select currenteventid from ".TB_WALLCONFIG;
-	$result = pg_exec($link,$sql);
-	if($result){
-		$row = pg_fetch_assoc($result);
-		$currentEventId = $row["currenteventid"];
-	}
-
-	$response = curl_get(URL_REMOTE_INTERFACE."?cmd=currentEventID");
-
-	if(intval($currentEventId) != intval($response)){
-		
-		//Sync Event Information between Local CMS and Remote CMS.
-		$sql="select id,name from ".TB_WALLEVENT." where rowtype='event'";
-		$resultEvent = pg_exec($link,$sql);
-		$arr = pg_fetch_all($resultEvent);
-
-		foreach($arr as $event){
-			echo "Sending Event : ".$event["id"]." ".$event["name"];
-			
-			$post_data = array(
-				"cmd"=>"syncEvent",
-				"id"=>$event["id"],
-				"name"=>$event["name"],
-			);
-			$res = curl_post(URL_REMOTE_INTERFACE,$post_data);
-			
-			echo "...".trim($res)."\n";
-		}
-		
-		$response = curl_get(URL_REMOTE_INTERFACE."?cmd=updateCurrentEventID&eventID=".$currentEventId);
-	}
-
-	$sql = "select 	a.id
-					,a.email
-					,a.mobile
-					,a.hasEmailReq::int
-					,a.hasSmsReq::int
-					,a.hasFbReq::int
-					,a.hasNewsReq::int
-					,a.photoid
-					,a.eventid
-			  from ".TB_WALLITEM." a
-			  left outer join ".TB_WALLSYNC." b
-				on a.id = b.id
-			 where b.id is null ";
-		   
+if($action == "status"){
+	$sql="select a.id,a.cdate,a.eventid,b.photoid 
+	        from ".TB_WALLSYNC." a
+			join ".TB_WALLITEM." b
+			  on a.id = b.id
+		   order by a.cdate desc
+		   limit 100";
+	
 	$result = pg_exec($link,$sql);
 	$arr = pg_fetch_all($result);
 	
-	if(!empty($arr)){
-		foreach($arr as $row){
-			echo "Sending Image[".$row["id"]."]...";
+	echo "<table>";
+	echo "<tr><td>id</td><td>cdate</td><td>eventid</td></tr>";
+	foreach($arr as $sync){
+		echo "<tr><td><a href=".URL_IMAGE.$sync['photoid'].">".$sync['id']."</a></td><td>".$sync['cdate']."</td><td>".$sync['eventid']."</td></tr>";
+	}
+	echo "</table>";
+	
+}else if(status == "run"){
+	while(true){
+
+		echo "START...\n";
+
+		$currentEventId = 0;
+		$sql = "select currenteventid from ".TB_WALLCONFIG;
+		$result = pg_exec($link,$sql);
+		if($result){
+			$row = pg_fetch_assoc($result);
+			$currentEventId = $row["currenteventid"];
+		}
+
+		$response = curl_get(URL_REMOTE_INTERFACE."?cmd=currentEventID");
+
+		if(intval($currentEventId) != intval($response)){
+			
+			//Sync Event Information between Local CMS and Remote CMS.
+			$sql="select id,name from ".TB_WALLEVENT." where rowtype='event'";
+			$resultEvent = pg_exec($link,$sql);
+			$arr = pg_fetch_all($resultEvent);
+
+			foreach($arr as $event){
+				echo "Sending Event : ".$event["id"]." ".$event["name"];
+				
+				$post_data = array(
+					"cmd"=>"syncEvent",
+					"id"=>$event["id"],
+					"name"=>$event["name"],
+				);
+				$res = curl_post(URL_REMOTE_INTERFACE,$post_data);
+				
+				echo "...".trim($res)."\n";
+			}
+			
+			$response = curl_get(URL_REMOTE_INTERFACE."?cmd=updateCurrentEventID&eventID=".$currentEventId);
+		}
+
+		$sql = "select 	a.id
+						,a.email
+						,a.mobile
+						,a.hasEmailReq::int
+						,a.hasSmsReq::int
+						,a.hasFbReq::int
+						,a.hasNewsReq::int
+						,a.photoid
+						,a.eventid
+				  from ".TB_WALLITEM." a
+				  left outer join ".TB_WALLSYNC." b
+					on a.id = b.id
+				 where b.id is null ";
+			   
+		$result = pg_exec($link,$sql);
+		$arr = pg_fetch_all($result);
 		
-			curl_get(URL_REMOTE_INTERFACE."?cmd=updateCurrentEventID&eventID=".$row["eventid"]);
-			curl_download(URL_IMAGE.$row["photoid"]);
+		if(!empty($arr)){
+			foreach($arr as $row){
+				echo "Sending Image[".$row["id"]."]...";
 			
-			$post_data = array();
-			if(!empty($row["email"])){
-				$post_data["email"] = $row["email"];
-			}else{	
-				$post_data["email"] = "";
-			}
-			
-			if(!empty($row["mobile"])){
-				$post_data["mobile"] = $row["mobile"];
-			}else{	
-				$post_data["mobile"] = "";
-			}
-			
-			if(!empty($row["hasemailreq"])){
-				if($row["hasemailreq"]){
-					$post_data["hasEmailReq"] = "on";
+				curl_get(URL_REMOTE_INTERFACE."?cmd=updateCurrentEventID&eventID=".$row["eventid"]);
+				curl_download(URL_IMAGE.$row["photoid"]);
+				
+				$post_data = array();
+				if(!empty($row["email"])){
+					$post_data["email"] = $row["email"];
+				}else{	
+					$post_data["email"] = "";
+				}
+				
+				if(!empty($row["mobile"])){
+					$post_data["mobile"] = $row["mobile"];
+				}else{	
+					$post_data["mobile"] = "";
+				}
+				
+				if(!empty($row["hasemailreq"])){
+					if($row["hasemailreq"]){
+						$post_data["hasEmailReq"] = "on";
+					}else{
+						$post_data["hasEmailReq"] = "";
+					}
 				}else{
 					$post_data["hasEmailReq"] = "";
 				}
-			}else{
-				$post_data["hasEmailReq"] = "";
-			}
-			
-			if(!empty($row["hassmsreq"])){
-				if($row["hassmsreq"]){
-					$post_data["hasSmsReq"] = "on";
+				
+				if(!empty($row["hassmsreq"])){
+					if($row["hassmsreq"]){
+						$post_data["hasSmsReq"] = "on";
+					}else{
+						$post_data["hasSmsReq"] = "";
+					}
 				}else{
 					$post_data["hasSmsReq"] = "";
 				}
-			}else{
-				$post_data["hasSmsReq"] = "";
-			}
-			
-			if(!empty($row["hasfbreq"])){
-				if($row["hasfbreq"]){
-					$post_data["hasFbReq"] = "on";
-				}else{
-					$post_data["hasFbReq"] = "";
+				
+				if(!empty($row["hasfbreq"])){
+					if($row["hasfbreq"]){
+						$post_data["hasFbReq"] = "on";
+					}else{
+						$post_data["hasFbReq"] = "";
+					}
+				}else{	
+					$post_data["hasfbreq"] = "";
 				}
-			}else{	
-				$post_data["hasfbreq"] = "";
-			}
-			
-			if(!empty($row["hasnewsreq"])){
-				if($row["hasnewsreq"]){
-					$post_data["hasNewsReq"] = "on";
+				
+				if(!empty($row["hasnewsreq"])){
+					if($row["hasnewsreq"]){
+						$post_data["hasNewsReq"] = "on";
+					}else{
+						$post_data["hasNewsReq"] = "";
+					}	
 				}else{
 					$post_data["hasNewsReq"] = "";
-				}	
-			}else{
-				$post_data["hasNewsReq"] = "";
-			}
-			
-			$post_data["Filedata"] = "@".URL_TMP;
-			
-			$res = curl_post(URL_REMOTE_CMS.URL_WALLITEM,$post_data);
-
-			try{
-				$xml = new SimpleXMLElement($res);
-				echo trim($xml->result->attributes()->status)."\n";
-				
-				if($xml->result->attributes()->status == "success"){
-					$sql = "insert into ".TB_WALLSYNC."(id,eventid,cdate) values('".$row["id"]."','".$row["eventid"]."',now())";
-					pg_exec($link,$sql);
 				}
 				
-			}catch(Exception $e){
-				echo $e;
-			}
-		} //foreach($arr as $row){
-	} //if(!empty($arr)){
+				$post_data["Filedata"] = "@".URL_TMP;
+				
+				$res = curl_post(URL_REMOTE_CMS.URL_WALLITEM,$post_data);
 
-	curl_get(URL_REMOTE_INTERFACE."?cmd=updateCurrentEventID&eventID=".$currentEventId);
-	
-	echo "SLEEP...\n";
-	sleep(60);
-}//while(true){
-?>
+				try{
+					$xml = new SimpleXMLElement($res);
+					echo trim($xml->result->attributes()->status)."\n";
+					
+					if($xml->result->attributes()->status == "success"){
+						$sql = "insert into ".TB_WALLSYNC."(id,eventid,cdate) values('".$row["id"]."','".$row["eventid"]."',now())";
+						pg_exec($link,$sql);
+					}
+					
+				}catch(Exception $e){
+					echo $e;
+				}
+			} //foreach($arr as $row){
+		} //if(!empty($arr)){
 
-<?php 
-pg_close($link);
+		curl_get(URL_REMOTE_INTERFACE."?cmd=updateCurrentEventID&eventID=".$currentEventId);
+		
+		echo "SLEEP...\n";
+		sleep(60);
+	}//while(true){
+}//if(status == "run"){
+
+if($action == "run" || $action == "dbcheck" || $action == "status"){
+	pg_close($link);
+}
 ?>
