@@ -31,9 +31,9 @@ Desc :
 <?php
 define("URL_LOCAL_CMS","http://127.0.0.1/app_dev.php");
 define("URL_REMOTE_CMS","http://127.0.0.1");
-define("URL_REMOTE_INTERFACE","http://127.0.0.1/tcs/interface/remoteCMS.php");
+define("URL_REMOTE_INTERFACE","http://127.0.0.1/tcsInterface/remoteCMS.php");
 define("URL_WALLITEM","/wall/items.xml");
-define("URL_TMP","C:\\Dev\\msysgit\\home\\royjung\\Vwall2\\wwwroot\\tcs\\interface\\tmpimage.jpg");
+define("URL_TMP","C:\\Dev\\msysgit\\home\\royjung\\Vwall2\\wwwroot\\tcsInterface\\bentzimage.jpg");
 define("URL_IMAGE",URL_LOCAL_CMS."/files/")
 
 define("DB_CONN_STRING","dbname=Vwall2_dev user=postgres password=NewPassword1");
@@ -250,7 +250,6 @@ while(true){
 			$res = curl_post(URL_REMOTE_CMS.URL_WALLITEM,$post_data);
 			
 			//echo trim($res)."\n";
-			
 			try{
 				$xml = new SimpleXMLElement($res);
 				//print_r($xml);
