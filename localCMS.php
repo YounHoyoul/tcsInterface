@@ -34,7 +34,7 @@ define("URL_REMOTE_CMS","http://127.0.0.1");
 define("URL_REMOTE_INTERFACE","http://127.0.0.1/tcsInterface/remoteCMS.php");
 define("URL_WALLITEM","/wall/items.xml");
 define("URL_TMP","C:\\Dev\\msysgit\\home\\royjung\\Vwall2\\wwwroot\\tcsInterface\\bentzimage.jpg");
-define("URL_IMAGE",URL_LOCAL_CMS."/files/")
+define("URL_IMAGE",URL_LOCAL_CMS."/files/");
 
 define("DB_CONN_STRING","dbname=Vwall2_dev user=postgres password=NewPassword1");
 
@@ -93,7 +93,7 @@ function curl_download($url){
 
 <?php
 
-echo "CHECK DATABASE.....\n";
+echo "CHECK DATABASE...\n";
 
 $link = @pg_connect(DB_CONN_STRING);
 if(!$link){
@@ -130,7 +130,7 @@ try{
 <?php
 while(true){
 
-	echo "START.....\n";
+	echo "START...\n";
 
 	$currentEventId = 0;
 	$sql = "select currenteventid from ".TB_WALLCONFIG;
@@ -150,7 +150,7 @@ while(true){
 		$arr = pg_fetch_all($resultEvent);
 
 		foreach($arr as $event){
-			echo "Sending...".$event["id"]." ".$event["name"];
+			echo "Sending Event : ".$event["id"]." ".$event["name"];
 			
 			$post_data = array(
 				"cmd"=>"syncEvent",
@@ -159,7 +159,7 @@ while(true){
 			);
 			$res = curl_post(URL_REMOTE_INTERFACE,$post_data);
 			
-			echo $res;
+			echo "...".trim($res)."\n";
 		}
 		
 		$response = curl_get(URL_REMOTE_INTERFACE."?cmd=updateCurrentEventID&eventID=".$currentEventId);
@@ -185,7 +185,9 @@ while(true){
 	if(!empty($arr)){
 		foreach($arr as $row){
 			
-			print_r($row);
+			//print_r($row);
+		
+			echo "Sending Image[".$row["id"]."]...";
 		
 			curl_download(URL_IMAGE.$row["photoid"]);
 			
@@ -253,7 +255,7 @@ while(true){
 			try{
 				$xml = new SimpleXMLElement($res);
 				//print_r($xml);
-				echo "status:".trim($xml->result->attributes()->status)."\n";
+				echo trim($xml->result->attributes()->status)."\n";
 				
 				if($xml->result->attributes()->status == "success"){
 					$sql = "insert into ".TB_WALLSYNC."(id,eventid,cdate) values('".$row["id"]."','".$currentEventId."',now())";
@@ -268,7 +270,7 @@ while(true){
 		} //foreach($arr as $row){
 	} //if(!empty($arr)){
 
-	echo "SLEEP.....\n";
+	echo "SLEEP...\n";
 	sleep(60);
 }//while(true){
 ?>
