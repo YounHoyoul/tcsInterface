@@ -25,7 +25,7 @@ Desc :
 	V7. Sending the form information to Remote CMS.
 	V8. Getting the result.
 	V9. if the result is successful, save it on wall sync.
-	10. After sleeping 60 seconds, run again.
+	V10. After sleeping 60 seconds, run again.
 */
 ?>
 <?php
@@ -105,14 +105,14 @@ try{
 	$result = @pg_exec($link, "select count(*) from ".TB_WALLSYNC);
 	if(!$result){
 		
-		echo "#There is no the table; ".TB_WALLSYNC."\n";
+		echo "There is no the table; ".TB_WALLSYNC."\n";
 		
 		$result2 = pg_exec($link,"SELECT COUNT(relname) as a FROM pg_class WHERE relname = '".TB_WALLSYNC."'");
 		$row = pg_fetch_assoc($result2);
 		
 		if($row["a"]==0){
 		
-			echo "#Making the table;".TB_WALLSYNC."\n";
+			echo "Making the table...".TB_WALLSYNC."...\n";
 		
 			$sql = "CREATE TABLE WallSync (
 						id        integer,
@@ -166,29 +166,27 @@ while(true){
 	}
 
 	$sql = "select 	a.id
-					,email
-					,mobile
-					,hasEmailReq::int
-					,hasSmsReq::int
-					,hasFbReq::int
-					,hasNewsReq::int
-					,photoid
+					,a.email
+					,a.mobile
+					,a.hasEmailReq::int
+					,a.hasSmsReq::int
+					,a.hasFbReq::int
+					,a.hasNewsReq::int
+					,a.photoid
+					,a.eventid
 			  from ".TB_WALLITEM." a
 			  left outer join ".TB_WALLSYNC." b
 				on a.id = b.id
-			 where a.eventID = ".$currentEventId."
-			   and b.id is null ";
+			 where b.id is null ";
 		   
 	$result = pg_exec($link,$sql);
 	$arr = pg_fetch_all($result);
 	
 	if(!empty($arr)){
 		foreach($arr as $row){
-			
-			//print_r($row);
-		
 			echo "Sending Image[".$row["id"]."]...";
 		
+			curl_get(URL_REMOTE_INTERFACE."?cmd=updateCurrentEventID&eventID=".$row["eventid"]);
 			curl_download(URL_IMAGE.$row["photoid"]);
 			
 			$post_data = array();
@@ -246,30 +244,25 @@ while(true){
 			
 			$post_data["Filedata"] = "@".URL_TMP;
 			
-			//print_r($post_data);
-			//echo URL_REMOTE_CMS.URL_WALLITEM."\n";
-			
 			$res = curl_post(URL_REMOTE_CMS.URL_WALLITEM,$post_data);
-			
-			//echo trim($res)."\n";
+
 			try{
 				$xml = new SimpleXMLElement($res);
-				//print_r($xml);
 				echo trim($xml->result->attributes()->status)."\n";
 				
 				if($xml->result->attributes()->status == "success"){
-					$sql = "insert into ".TB_WALLSYNC."(id,eventid,cdate) values('".$row["id"]."','".$currentEventId."',now())";
+					$sql = "insert into ".TB_WALLSYNC."(id,eventid,cdate) values('".$row["id"]."','".$row["eventid"]."',now())";
 					pg_exec($link,$sql);
 				}
 				
 			}catch(Exception $e){
 				echo $e;
 			}
-			//For TEST
-			//break;
 		} //foreach($arr as $row){
 	} //if(!empty($arr)){
 
+	curl_get(URL_REMOTE_INTERFACE."?cmd=updateCurrentEventID&eventID=".$currentEventId);
+	
 	echo "SLEEP...\n";
 	sleep(60);
 }//while(true){
