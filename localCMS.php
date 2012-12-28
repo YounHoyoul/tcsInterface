@@ -95,10 +95,15 @@ function curl_download($url){
 
 echo "CHECK DATABASE...\n";
 
-$link = @pg_connect(DB_CONN_STRING);
-if(!$link){
-	echo "There is something wrong while connecting the database.";
-	die();
+while(1){
+	$link = @pg_connect(DB_CONN_STRING);
+	if(!$link){
+		echo "There is something wrong while connecting the database.";
+		//die();
+		sleep(30);
+		continue;
+	}
+	break;
 }
 
 try{
