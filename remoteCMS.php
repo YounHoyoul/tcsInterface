@@ -18,8 +18,8 @@ Desc :
 */
 ?>
 <?php
-//define("DB_CONN_STRING","dbname=Vwall2_prod user=postgres password=NewPassword1");
-define("DB_CONN_STRING","dbname=Vwall2_test user=postgres password=NewPassword1");
+define("DB_CONN_STRING","dbname=Vwall2_prod user=postgres password=NewPassword1");
+//define("DB_CONN_STRING","dbname=Vwall2_test user=postgres password=NewPassword1");
 define("TB_WALLCONFIG","WallConfiguration");
 define("TB_WALLEVENT","WallEvent");
 define("TB_WALLITEM","WallIem");
