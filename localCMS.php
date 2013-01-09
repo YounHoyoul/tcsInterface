@@ -29,14 +29,18 @@ Desc :
 */
 ?>
 <?php
-define("URL_LOCAL_CMS","http://127.0.0.1/app_dev.php");
-define("URL_REMOTE_CMS","http://127.0.0.1");
-define("URL_REMOTE_INTERFACE","http://127.0.0.1/tcsInterface/remoteCMS.php");
+define("URL_LOCAL_CMS","http://127.0.0.1");
+
+define("URL_REMOTE_INTERFACE","http://54.252.103.156/tcsInterface/remoteCMS.php");
+define("URL_REMOTE_CMS","http://54.252.103.156");
+
 define("URL_WALLITEM","/wall/items.xml");
+//define("URL_TMP","D:\\msysgit\\home\\tcsadmin\\BenzWall\\wwwroot\\tcsInterface\\bentzimage.jpg");
 define("URL_TMP","C:\\Dev\\msysgit\\home\\royjung\\Vwall2\\wwwroot\\tcsInterface\\bentzimage.jpg");
 define("URL_IMAGE",URL_LOCAL_CMS."/files/");
 
-define("DB_CONN_STRING","dbname=Vwall2_dev user=postgres password=NewPassword1");
+//define("DB_CONN_STRING","dbname=BenzWall_prod user=postgres password=NewPassword1");
+define("DB_CONN_STRING","dbname=Vwall2_prod user=postgres password=NewPassword1");
 
 define("TB_WALLCONFIG","WallConfiguration");
 define("TB_WALLEVENT","WallEvent");
@@ -163,7 +167,7 @@ if($action == "status"){
 	}
 	echo "</table>";
 	
-}else if(status == "run"){
+}else if($action == "run"){
 	while(true){
 
 		echo "START...\n";
@@ -210,6 +214,7 @@ if($action == "status"){
 						,a.hasNewsReq::int
 						,a.photoid
 						,a.eventid
+						,a.username
 				  from ".TB_WALLITEM." a
 				  left outer join ".TB_WALLSYNC." b
 					on a.id = b.id
@@ -276,6 +281,12 @@ if($action == "status"){
 					}	
 				}else{
 					$post_data["hasNewsReq"] = "";
+				}
+				
+				if(!empty($row["username"])){
+					$post_data["userName"] = $row["username"];
+				}else{	
+					$post_data["userName"] = "";
 				}
 				
 				$post_data["Filedata"] = "@".URL_TMP;

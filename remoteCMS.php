@@ -18,7 +18,7 @@ Desc :
 */
 ?>
 <?php
-define("DB_CONN_STRING","dbname=Vwall2_prod user=postgres password=NewPassword1");
+define("DB_CONN_STRING","dbname=BenzWall_prod user=bzadmin password=Pass1Bzadmin2");
 //define("DB_CONN_STRING","dbname=Vwall2_test user=postgres password=NewPassword1");
 define("TB_WALLCONFIG","WallConfiguration");
 define("TB_WALLEVENT","WallEvent");
@@ -30,6 +30,10 @@ $link = @pg_connect(DB_CONN_STRING);
 if(!$link){
 	echo "There is something wrong while connecting the database.";
 	die();
+}else{
+	if($_GET["cmd"]=="cks"){
+		echo "DB is connected!";
+	}
 }
 ?>
 <?php
